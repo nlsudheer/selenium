@@ -16,20 +16,19 @@ limitations under the License.
 
 package org.openqa.selenium.remote.server.handler.html5;
 
-import org.openqa.selenium.html5.LocationContext;
+import org.openqa.selenium.html5.Location;
 import org.openqa.selenium.remote.server.Session;
-import org.openqa.selenium.remote.server.handler.ResponseAwareWebDriverHandler;
-import org.openqa.selenium.remote.server.rest.ResultType;
+import org.openqa.selenium.remote.server.handler.WebDriverHandler;
 
-public class GetLocationContext extends ResponseAwareWebDriverHandler {
+public class GetLocationContext extends WebDriverHandler<Location> {
 
   public GetLocationContext(Session session) {
     super(session);
   }
 
-  public ResultType call() throws Exception {
-    response.setValue(((LocationContext) getUnwrappedDriver()).location());
-    return ResultType.SUCCESS;
+  @Override
+  public Location call() throws Exception {
+    return Utils.getLocationContext(getUnwrappedDriver()).location();
   }
 
   @Override

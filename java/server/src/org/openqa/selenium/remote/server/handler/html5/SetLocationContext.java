@@ -18,48 +18,49 @@ package org.openqa.selenium.remote.server.handler.html5;
 
 import org.openqa.selenium.WebDriverException;
 import org.openqa.selenium.html5.Location;
-import org.openqa.selenium.html5.LocationContext;
 import org.openqa.selenium.remote.server.JsonParametersAware;
 import org.openqa.selenium.remote.server.Session;
 import org.openqa.selenium.remote.server.handler.WebDriverHandler;
-import org.openqa.selenium.remote.server.rest.ResultType;
 
 import java.util.Map;
 
-public class SetLocationContext extends WebDriverHandler implements JsonParametersAware {
+public class SetLocationContext extends WebDriverHandler<Void> implements JsonParametersAware {
   private volatile Location location;
 
   public SetLocationContext(Session session) {
     super(session);
   }
 
-  public ResultType call() throws Exception {
-    ((LocationContext) getUnwrappedDriver()).setLocation(location);
-    return ResultType.SUCCESS;
+  @Override
+  public Void call() throws Exception {
+    Utils.getLocationContext(getUnwrappedDriver()).setLocation(location);
+    return null;
   }
 
+  @Override
   public void setJsonParameters(Map<String, Object> allParameters) throws Exception {
-    Map<Object, Object> map = (Map<Object, Object>) allParameters.get("location");
+    @SuppressWarnings("unchecked")
+    Map<Object, Object> locationMap = (Map<Object, Object>) allParameters.get("location");
 
     double latitude;
     try {
-      latitude = ((Number) allParameters.get("latitude")).doubleValue();
+      latitude = ((Number) locationMap.get("latitude")).doubleValue();
     } catch (ClassCastException ex) {
-      throw new WebDriverException("Illegal (non-double) latitude location passed: " + allParameters.get("latitude"), ex);
+      throw new WebDriverException("Illegal (non-double) latitude location passed: " + locationMap.get("latitude"), ex);
     }
 
     double longitude;
     try {
-      longitude = ((Number) allParameters.get("longitude")).doubleValue();
+      longitude = ((Number) locationMap.get("longitude")).doubleValue();
     } catch (ClassCastException ex) {
-      throw new WebDriverException("Illegal (non-double) longitude location passed: " + allParameters.get("longitude"), ex);
+      throw new WebDriverException("Illegal (non-double) longitude location passed: " + locationMap.get("longitude"), ex);
     }
 
     double altitude;
     try {
-      altitude = ((Number) allParameters.get("altitude")).doubleValue();
+      altitude = ((Number) locationMap.get("altitude")).doubleValue();
     } catch (ClassCastException ex) {
-      throw new WebDriverException("Illegal (non-double) altitude location passed: " + allParameters.get("altitude"), ex);
+      throw new WebDriverException("Illegal (non-double) altitude location passed: " + locationMap.get("altitude"), ex);
     }
 
     location = new Location(latitude, longitude, altitude);

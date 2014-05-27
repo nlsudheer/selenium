@@ -36,7 +36,7 @@ public class TestUtilities {
 
   }
 
-  private static String getUserAgent(WebDriver driver) {
+  public static String getUserAgent(WebDriver driver) {
     try {
       return (String) ((JavascriptExecutor) driver).executeScript(
         "return navigator.userAgent;");
@@ -56,8 +56,9 @@ public class TestUtilities {
   }
 
   public static boolean isInternetExplorer(WebDriver driver) {
+    String userAgent = getUserAgent(driver);
     return !(driver instanceof HtmlUnitDriver)
-        && getUserAgent(driver).contains("MSIE");
+        && (userAgent.contains("MSIE") || userAgent.contains("Trident"));
   }
 
   public static boolean isIe6(WebDriver driver) {
@@ -127,9 +128,9 @@ public class TestUtilities {
   }
 
   /**
-   * Finds the Firefox version of the given webdriver and returns it as an integer. 
+   * Finds the Firefox version of the given webdriver and returns it as an integer.
    * For instance, '14.0.1' will translate to 14.
-   * 
+   *
    * @param driver The driver to find the version for.
    * @return The found version, or 0 if no version could be found.
    */

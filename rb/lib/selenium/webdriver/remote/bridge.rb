@@ -413,7 +413,7 @@ module Selenium
 
         def upload(local_file)
           unless File.file?(local_file)
-            raise WebDriverError::Error, "you may only upload files: #{local_file.inspect}"
+            raise Error::WebDriverError, "you may only upload files: #{local_file.inspect}"
           end
 
           execute :uploadFile, {}, :file => Zipper.zip_file(local_file)
@@ -457,12 +457,12 @@ module Selenium
         end
 
         def touchScroll(element, x, y)
-          unless element
-            execute :touchScroll, {}, :xoffset => x, :yoffset => y
-          else
+          if element
             execute :touchScroll, {}, :element => element,
                                       :xoffset => x,
                                       :yoffset => y
+          else
+            execute :touchScroll, {}, :xoffset => x, :yoffset => y
           end
         end
 

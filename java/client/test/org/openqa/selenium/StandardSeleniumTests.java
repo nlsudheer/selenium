@@ -67,6 +67,7 @@ import org.openqa.selenium.testing.ParallelSuite;
     PerformanceLogTypeTest.class,
     PositionAndSizeTest.class,
     ProxySettingTest.class,
+    ReferrerTest.class,
     CssValueTest.class,
     RotatableTest.class,
     SelectElementTest.class,
@@ -85,6 +86,7 @@ import org.openqa.selenium.testing.ParallelSuite;
     VisibilityTest.class,
     WebElementTest.class,
     WindowSwitchingTest.class,
+    ContextSwitchingTest.class,
     WindowTest.class,
 
     Html5Tests.class,

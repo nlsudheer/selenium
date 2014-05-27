@@ -222,7 +222,7 @@ module Javascript
         py = "python"
       end
       @calcdeps = "#{py} third_party/closure/bin/calcdeps.py " +
-                  "-c third_party/closure/bin/compiler-20130603.jar "
+                  "-c third_party/closure/bin/compiler-20140407.jar "
     end
 
     def js_name(dir, name)
@@ -515,7 +515,7 @@ module Javascript
 
         CrazyFunJava.ant.java :classname => "com.google.javascript.jscomp.CommandLineRunner", :failonerror => true do
           classpath do
-            pathelement :path =>  "third_party/closure/bin/compiler-20130603.jar"
+            pathelement :path =>  "third_party/closure/bin/compiler-20140407.jar"
           end
           arg :line => cmd
         end
@@ -684,7 +684,7 @@ module Javascript
 
         CrazyFunJava.ant.java :classname => "com.google.javascript.jscomp.CommandLineRunner", :failonerror => true do
           classpath do
-            pathelement :path =>  "third_party/closure/bin/compiler-20130603.jar"
+            pathelement :path =>  "third_party/closure/bin/compiler-20140407.jar"
           end
           arg :line => flags.join(" ")
         end
@@ -807,7 +807,7 @@ module Javascript
 
         CrazyFunJava.ant.java :classname => "com.google.javascript.jscomp.CommandLineRunner", :fork => false, :failonerror => true do
           classpath do
-            pathelement :path =>  "third_party/closure/bin/compiler-20130603.jar"
+            pathelement :path =>  "third_party/closure/bin/compiler-20140407.jar"
           end
           arg :line => cmd
         end
@@ -837,7 +837,7 @@ module Javascript
     MAX_STR_LENGTH_JAVA = MAX_LINE_LENGTH_JAVA - "       .append\(\"\"\)\n".length
     COPYRIGHT =
           "/*\n" +
-          " * Copyright 2011-2012 WebDriver committers\n" +
+          " * Copyright 2011-2014 Software Freedom Conservancy\n" +
           " *\n" +
           " * Licensed under the Apache License, Version 2.0 (the \"License\");\n" +
           " * you may not use this file except in compliance with the License.\n" +
@@ -909,7 +909,7 @@ module Javascript
       elsif language == :java
         line_format = "      .append\(\"%s\"\)"
       elsif language == :csharp
-        line_format = "            .Append\(\"%s\"\)"
+        line_format = "                    atom.Append\(\"%s\"\);"
       end
 
       to_file << "\n"
@@ -919,7 +919,14 @@ module Javascript
       elsif language == :java
         to_file << "  #{atom_name}(new StringBuilder()\n"
       elsif language == :csharp
-        to_file << "        public static readonly string #{atom_name} = new StringBuilder()\n"
+        to_file << "        public static string #{atom_name}\n"
+        to_file << "        {\n"
+        to_file << "            get\n"
+        to_file << "            {\n"
+        to_file << "                const string atomName = \"#{atom_name}\";\n"
+        to_file << "                if (!atomsRepository.ContainsKey(atomName))\n"
+        to_file << "                {\n"
+        to_file << "                    StringBuilder atom = new StringBuilder();\n"
       end
 
       # Make the header file play nicely in a terminal: limit lines to 80
@@ -951,7 +958,12 @@ module Javascript
       elsif language == :cpp
         to_file << ",\n    NULL\n};\n"
       elsif language == :csharp
-        to_file << "\n            .ToString();\n"
+        to_file << "\n                    atomsRepository[atomName] = atom.ToString();\n"
+        to_file << "                }\n"
+        to_file << "\n"
+        to_file << "                return atomsRepository[atomName];\n"
+        to_file << "            }\n"
+        to_file << "        }\n"
       end
     end
 
@@ -1038,7 +1050,7 @@ module Javascript
 
     def generate_java(dir, name, task_name, output, js_files, package)
       file output => js_files do
-        task_name =~ /([a-z]+)-driver/
+        task_name =~ /([a-z]+)-(driver|atoms)/
         implementation = $1.capitalize
         output_dir = File.dirname(output)
         mkdir_p output_dir unless File.exists?(output_dir)
@@ -1098,6 +1110,8 @@ module Javascript
         File.open(output, "w") do |out|
           out << COPYRIGHT
           out << "\n"
+          out << "using System.CodeDom.Compiler;\n"
+          out << "using System.Collections.Generic;\n"
           out << "using System.Text;\n"
           out << "\n"
           out << "namespace #{package}\n"
@@ -1107,8 +1121,10 @@ module Javascript
           out << "     * \n"
           out << "     * AUTO GENERATED - DO NOT EDIT BY HAND\n"
           out << "     */\n"
+          out << "    [GeneratedCode(\"WebDriver\", \"#{version}\")]\n"
           out << "    public static class #{class_name}\n"
-          out << "    {"
+          out << "    {\n"
+          out << "        private static Dictionary<string, string> atomsRepository = new Dictionary<string, string>();\n"
 
           js_files.each do |js_file|
             write_atom_string_literal(out, dir, js_file, :csharp)

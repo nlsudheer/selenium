@@ -52,14 +52,29 @@ void __stdcall Browser::NewWindow3(IDispatch** ppDisp,
   LOG(TRACE) << "Entering Browser::NewWindow3";
   // Handle the NewWindow3 event to allow us to immediately hook
   // the events of the new browser window opened by the user action.
+  // The three ways we can respond to this event are documented at
+  // http://msdn.microsoft.com/en-us/library/aa768337%28v=vs.85%29.aspx
+  // We potentially use two of those response methods.
   // This will not allow us to handle windows created by the JavaScript
   // showModalDialog function().
   IWebBrowser2* browser;
   LPSTREAM message_payload;
-  ::SendMessage(this->executor_handle(),
-                WD_BROWSER_NEW_WINDOW,
-                NULL,
-                reinterpret_cast<LPARAM>(&message_payload));
+  LRESULT create_result = ::SendMessage(this->executor_handle(),
+                                        WD_BROWSER_NEW_WINDOW,
+                                        NULL,
+                                        reinterpret_cast<LPARAM>(&message_payload));
+  if (create_result != 0) {
+    // The new, blank IWebBrowser2 object was not created,
+    // so we can't really do anything appropriate here.
+    // Note this is "response method 2" of the aforementioned
+    // documentation.
+    LOG(WARN) << "A valid IWebBrowser2 object could not be created.";
+    *pbCancel = VARIANT_TRUE;
+    return;
+  }
+
+  // We received a valid IWebBrowser2 pointer, so deserialize it onto this
+  // thread, and pass the result back to the caller.
   HRESULT hr = ::CoGetInterfaceAndReleaseStream(message_payload,
                                                 IID_IWebBrowser2,
                                                 reinterpret_cast<void**>(&browser));
@@ -385,6 +400,13 @@ HWND Browser::GetTopLevelWindowHandle() {
   return top_level_window_handle;
 }
 
+bool Browser::IsValidWindow() {
+  LOG(TRACE) << "Entering Browser::IsValidWindow";
+  // This is a no-op for this class. Full browser windows can properly notify
+  // of their window's validity by using the proper events.
+  return true;
+}
+
 bool Browser::IsBusy() {
   VARIANT_BOOL is_busy(VARIANT_FALSE);
   HRESULT hr = this->browser_->get_Busy(&is_busy);
@@ -409,7 +431,11 @@ bool Browser::Wait() {
   // Navigate events completed. Waiting for browser.Busy != false...
   is_navigating = this->is_navigation_started_;
   if (is_navigating || this->IsBusy()) {
-    LOG(DEBUG) << "Browser busy property is true.";
+    if (is_navigating) {
+      LOG(DEBUG) << "DocumentComplete event fired, indicating a new navigation.";
+    } else {
+      LOG(DEBUG) << "Browser busy property is true.";
+    }
     return false;
   }
 
@@ -418,7 +444,13 @@ bool Browser::Wait() {
   READYSTATE ready_state;
   HRESULT hr = this->browser_->get_ReadyState(&ready_state);
   if (is_navigating || FAILED(hr) || ready_state != READYSTATE_COMPLETE) {
-    LOG(DEBUG) << "readyState is not 'Complete'.";
+    if (is_navigating) {
+      LOG(DEBUG) << "DocumentComplete event fired, indicating a new navigation.";
+    } else if (FAILED(hr)) {
+      LOGHR(DEBUG, hr) << "IWebBrowser2::get_ReadyState failed.";
+    } else {
+      LOG(DEBUG) << "Browser ReadyState is not '4', indicating 'Complete'; it was " << ready_state;
+    }
     return false;
   }
 
@@ -427,7 +459,13 @@ bool Browser::Wait() {
   CComPtr<IDispatch> document_dispatch;
   hr = this->browser_->get_Document(&document_dispatch);
   if (is_navigating || FAILED(hr) || !document_dispatch) {
-    LOG(DEBUG) << "Get Document failed.";
+    if (is_navigating) {
+      LOG(DEBUG) << "DocumentComplete event fired, indicating a new navigation.";
+    } else if (FAILED(hr)) {
+      LOGHR(DEBUG, hr) << "IWebBrowser2::get_Document failed.";
+    } else {
+      LOG(DEBUG) << "Get Document failed; IWebBrowser2::get_Document did not return a valid IDispatch object.";
+    }
     return false;
   }
 
@@ -457,7 +495,14 @@ bool Browser::IsDocumentNavigating(IHTMLDocument2* doc) {
   CComBSTR ready_state;
   HRESULT hr = doc->get_readyState(&ready_state);
   if (FAILED(hr) || is_navigating || _wcsicmp(ready_state, L"complete") != 0) {
-    LOG(DEBUG) << "readyState is not complete. ";
+    if (FAILED(hr)) {
+      LOGHR(DEBUG, hr) << "IHTMLDocument2::get_readyState failed.";
+    } else if (is_navigating) {
+      LOG(DEBUG) << "DocumentComplete event fired, indicating a new navigation.";
+    } else {
+      std::wstring state = ready_state;
+      LOG(DEBUG) << "document.readyState is not 'complete'; it was " << LOGWSTRING(state);
+    }
     return true;
   } else {
     is_navigating = false;
@@ -484,14 +529,18 @@ bool Browser::IsDocumentNavigating(IHTMLDocument2* doc) {
       CComVariant result;
       hr = frames->item(&index, &result);
       if (FAILED(hr)) {
-        LOGHR(DEBUG, hr) << "Could not get frame item for index " << i << ", call to IHTMLFramesCollection2::item failed, frame/frameset is broken";
+        LOGHR(DEBUG, hr) << "Could not get frame item for index "
+                         << i
+                         << ", call to IHTMLFramesCollection2::item failed, frame/frameset is broken";
         continue;
       }
 
       CComPtr<IHTMLWindow2> window;
       result.pdispVal->QueryInterface<IHTMLWindow2>(&window);
       if (!window) {        
-        LOG(DEBUG) << "Could not get window for frame item with index " << i << ", cast to IHTMLWindow2 failed, frame is not an HTML frame";
+        LOG(DEBUG) << "Could not get window for frame item with index "
+                   << i 
+                   << ", cast to IHTMLWindow2 failed, frame is not an HTML frame";
         continue;
       }
 

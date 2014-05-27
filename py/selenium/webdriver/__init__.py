@@ -1,7 +1,6 @@
 #!/usr/bin/python
 #
-# Copyright 2008-2010 Webdriver_name committers
-# Copyright 2008-2010 Google Inc.
+# Copyright 2008-2013 Software Freedom Conservancy
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,10 +22,11 @@ from .ie.webdriver import WebDriver as Ie
 from .opera.webdriver import WebDriver as Opera
 from .safari.webdriver import WebDriver as Safari
 from .phantomjs.webdriver import WebDriver as PhantomJS
+from .android.webdriver import WebDriver as Android
 from .remote.webdriver import WebDriver as Remote
 from .common.desired_capabilities import DesiredCapabilities
 from .common.action_chains import ActionChains
 from .common.touch_actions import TouchActions
 from .common.proxy import Proxy
 
-__version__ = '2.35.0'
+__version__ = '2.42.0'

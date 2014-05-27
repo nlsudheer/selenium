@@ -1,5 +1,5 @@
 /*
-Copyright 2007-2010 Selenium committers
+Copyright 2007-2014 Software Freedom Conservancy
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ public class Pages {
   public String clicksPage;
   public String colorPage;
   public String documentWrite;
+  public String dragDropOverflow;
   public String draggableLists;
   public String dragAndDropPage;
   public String droppableItems;
@@ -42,7 +43,6 @@ public class Pages {
   public String framesetPage;
   public String grandchildPage;
   public String html5Page;
-  public String html5OfflinePage;
   public String iframePage;
   public String javascriptEnhancedForm;
   public String javascriptPage;
@@ -52,6 +52,7 @@ public class Pages {
   public String mapVisibilityPage;
   public String metaRedirectPage;
   public String missedJsReferencePage;
+  public String mouseOverPage;
   public String mouseTrackerPage;
   public String nestedPage;
   public String readOnlyPage;
@@ -71,6 +72,7 @@ public class Pages {
   public String underscorePage;
   public String unicodeLtrPage;
   public String uploadPage;
+  public String userDefinedProperty;
   public String veryLargeCanvas;
   public String xhtmlFormPage;
   public String xhtmlTestPage;
@@ -87,6 +89,7 @@ public class Pages {
     clickEventPage = appServer.whereIs("clickEventPage.html");
     clicksPage = appServer.whereIs("clicks.html");
     colorPage = appServer.whereIs("colorPage.html");
+    dragDropOverflow = appServer.whereIs("dragDropOverflow.html");
     draggableLists = appServer.whereIs("draggableLists.html");
     dragAndDropPage = appServer.whereIs("dragAndDropTest.html");
     droppableItems = appServer.whereIs("droppableItems.html");
@@ -100,7 +103,6 @@ public class Pages {
     framesetPage = appServer.whereIs("frameset.html");
     grandchildPage = appServer.whereIs("child/grandchild/grandchildPage.html");
     html5Page = appServer.whereIs("html5Page.html");
-    html5OfflinePage = appServer.whereIs("html5/offline.html");
     iframePage = appServer.whereIs("iframes.html");
     javascriptEnhancedForm = appServer.whereIs("javascriptEnhancedForm.html");
     javascriptPage = appServer.whereIs("javascriptPage.html");
@@ -110,6 +112,7 @@ public class Pages {
     mapVisibilityPage = appServer.whereIs("map_visibility.html");
     metaRedirectPage = appServer.whereIs("meta-redirect.html");
     missedJsReferencePage = appServer.whereIs("missedJsReference.html");
+    mouseOverPage = appServer.whereIs("mouseOver.html");
     mouseTrackerPage = appServer.whereIs("mousePositionTracker.html");
     nestedPage = appServer.whereIs("nestedElements.html");
     readOnlyPage = appServer.whereIs("readOnlyPage.html");
@@ -129,6 +132,7 @@ public class Pages {
     underscorePage = appServer.whereIs("underscore.html");
     unicodeLtrPage = appServer.whereIs("utf8/unicode_ltr.html");
     uploadPage = appServer.whereIs("upload.html");
+    userDefinedProperty = appServer.whereIs("userDefinedProperty.html");
     veryLargeCanvas = appServer.whereIs("veryLargeCanvas.html");
     xhtmlTestPage = appServer.whereIs("xhtmlTest.html");
   }

@@ -498,7 +498,7 @@ bot.dom.getInlineStyle = function(elem, styleName) {
  * http://code.google.com/p/doctype/wiki/ArticleComputedStyleVsCascadedStyle
  *
  * @param {!Element} elem Element to get the style value from.
- * @param {string} propertyName Name of the CSS property in selector-case.
+ * @param {string} propertyName Name of the CSS property.
  * @return {?string} The value of the style property, or null.
  */
 bot.dom.getEffectiveStyle = function(elem, propertyName) {
@@ -513,7 +513,7 @@ bot.dom.getEffectiveStyle = function(elem, propertyName) {
   if (style === null) {
     return null;
   }
-  return bot.color.standardizeColor(propertyName, style);
+  return bot.color.standardizeColor(styleName, style);
 };
 
 
@@ -688,7 +688,7 @@ bot.dom.getOverflowState = function(elem, opt_region) {
     if (position == 'fixed') {
       treatAsFixedPosition = true;
       // Fixed-position element may only overflow the viewport.
-      return htmlElem;
+      return e == htmlElem ? null : htmlElem;
     } else {
       var parent = bot.dom.getParentElement(e);
       while (parent && !canBeOverflowed(parent)) {
@@ -1247,7 +1247,7 @@ bot.dom.appendVisibleTextLinesFromTextNode_ = function(textNode, lines,
  */
 bot.dom.getOpacity = function(elem) {
   // TODO: Does this need to deal with rgba colors?
-  if (!bot.userAgent.IE_DOC_PRE10) {
+  if (!bot.userAgent.IE_DOC_PRE9) {
     return bot.dom.getOpacityNonIE_(elem);
   } else {
     if (bot.dom.getEffectiveStyle(elem, 'position') == 'relative') {

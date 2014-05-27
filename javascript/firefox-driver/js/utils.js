@@ -249,6 +249,35 @@ Utils.useNativeEvents = function() {
   return !!(enableNativeEvents && Utils.getNativeEvents());
 };
 
+Utils.getPageLoadingStrategy = function() {
+  var prefs =
+      fxdriver.moz.getService('@mozilla.org/preferences-service;1', 'nsIPrefBranch');
+  return prefs.prefHasUserValue('webdriver.load.strategy') ?
+      prefs.getCharPref('webdriver.load.strategy') : 'normal';
+};
+
+Utils.initWebLoadingListener = function(respond, opt_window) {
+  var browser = respond.session.getBrowser();
+  var topWindow = browser.contentWindow;
+  var window = opt_window || topWindow;
+  respond.session.setWaitForPageLoad(true);
+  // Wait for the reload to finish before sending the response.
+  new WebLoadingListener(browser, function(timedOut, opt_stopWaiting) {
+    // Reset to the top window.
+    respond.session.setWindow(topWindow);
+    if (opt_stopWaiting) {
+      respond.session.setWaitForPageLoad(false);
+    }
+    if (timedOut) {
+      respond.session.setWaitForPageLoad(false);
+      respond.sendError(new WebDriverError(bot.ErrorCode.TIMEOUT,
+                                           'Timed out waiting for page load.'));
+    } else {
+      respond.send();
+    }
+  }, respond.session.getPageLoadTimeout(), window);
+};
+
 Utils.type = function(doc, element, text, opt_useNativeEvents, jsTimer, releaseModifiers,
     opt_keysState) {
 
@@ -342,7 +371,7 @@ Utils.type = function(doc, element, text, opt_useNativeEvents, jsTimer, releaseM
     } else if (c == '\uE006') {
       keyCode = Components.interfaces.nsIDOMKeyEvent.DOM_VK_RETURN;
     } else if (c == '\uE007') {
-      keyCode = Components.interfaces.nsIDOMKeyEvent.DOM_VK_ENTER;
+      keyCode = Components.interfaces.nsIDOMKeyEvent.DOM_VK_RETURN;
     } else if (c == '\uE008') {
       keyCode = Components.interfaces.nsIDOMKeyEvent.DOM_VK_SHIFT;
       shiftKey = !shiftKey;
@@ -597,26 +626,39 @@ Utils.type = function(doc, element, text, opt_useNativeEvents, jsTimer, releaseM
 Utils.keyEvent = function(doc, element, type, keyCode, charCode,
                           controlState, shiftState, altState, metaState,
                           shouldPreventDefault) {
-  var preventDefault = shouldPreventDefault == undefined ? false
-      : shouldPreventDefault;
+  // Silently bail out if the element is no longer attached to the DOM.
+  var isAttachedToDom = goog.dom.getAncestor(element, function(node) {
+    return node === element.ownerDocument.documentElement;
+  }, true);
 
-  var modsMask = 0;
-  if (altState) {
-    modsMask = modsMask | 0x01;
+  if (!isAttachedToDom) {
+    return false;
   }
+
+  var windowUtils = doc.defaultView
+      .QueryInterface(Components.interfaces.nsIInterfaceRequestor)
+      .getInterface(Components.interfaces.nsIDOMWindowUtils);
+
+  var modifiers = 0;
   if (controlState) {
-    modsMask = modsMask | 0x02;
+    modifiers += windowUtils.MODIFIER_CONTROL;
+  }
+  if (altState) {
+    modifiers += windowUtils.MODIFIER_ALT;
   }
   if (shiftState) {
-    modsMask = modsMask | 0x04;
+    modifiers += windowUtils.MODIFIER_SHIFT;
   }
-  if (metaState)  {
-    modsMask = modsMask | 0x08;
+  if (metaState) {
+    modifiers += windowUtils.MODIFIER_META;
   }
-  var win = doc.defaultView;
-  var domUtil = win.QueryInterface(Components.interfaces.nsIInterfaceRequestor)
-      .getInterface(Components.interfaces.nsIDOMWindowUtils);
-  return domUtil.sendKeyEvent(type, keyCode, charCode, modsMask, preventDefault);
+
+  var additionalFlags = 0;
+  if (shouldPreventDefault) {
+    additionalFlags += windowUtils.KEY_FLAG_PREVENT_DEFAULT;
+  }
+
+  return windowUtils.sendKeyEvent(type, keyCode, charCode, modifiers, additionalFlags);
 };
 
 
@@ -625,24 +667,6 @@ Utils.fireHtmlEvent = function(element, eventName) {
   var e = doc.createEvent('HTMLEvents');
   e.initEvent(eventName, true, true);
   return element.dispatchEvent(e);
-};
-
-
-Utils.fireMouseEventOn = function(element, eventName, clientX, clientY) {
-  Utils.triggerMouseEvent(element, eventName, clientX, clientY);
-};
-
-
-Utils.triggerMouseEvent = function(element, eventType, clientX, clientY) {
-  var event = element.ownerDocument.createEvent('MouseEvents');
-  var view = element.ownerDocument.defaultView;
-
-  clientX = clientX || 0;
-  clientY = clientY || 0;
-
-  event.initMouseEvent(eventType, true, true, view, 1, 0, 0, clientX, clientY,
-      false, false, false, false, 0, element);
-  element.dispatchEvent(event);
 };
 
 
@@ -818,6 +842,10 @@ Utils.wrapResult = function(result, doc) {
       // There's got to be a more intelligent way of detecting this.
       if (result['tagName']) {
         return {'ELEMENT': Utils.addToKnownElements(result)};
+      }
+
+      if (typeof result.getMonth === 'function') {
+        return result.toJSON();
       }
 
       if (typeof result.length === 'number' &&

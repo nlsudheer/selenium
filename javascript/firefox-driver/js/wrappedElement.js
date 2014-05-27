@@ -225,10 +225,14 @@ WebElement.sendKeysToElement = function(respond, parameters) {
         goog.dom.selection.setCursorPosition(element, length);
     }
 
-    Utils.type(respond.session.getDocument(), use, parameters.value.join(''),
-        originalDriver.enableNativeEvents, originalDriver.jsTimer, true /*release modifiers*/);
-
-    respond.send();
+    try {
+      Utils.type(respond.session.getDocument(), use, parameters.value.join(''),
+          originalDriver.enableNativeEvents, originalDriver.jsTimer,
+          true /*release modifiers*/);
+      respond.send();
+    } catch (ex) {
+      respond.sendError(ex);
+    }
   }, 0);
 };
 WebElement.sendKeysToElement.preconditions =
@@ -256,8 +260,8 @@ WebElement.getElementTagName = function(respond, parameters) {
 
 
 WebElement.getElementAttribute = function(respond, parameters) {
-  var element = Utils.getElementAt(parameters.id,
-                                  respond.session.getDocument());
+  var element = fxdriver.moz.unwrap(
+      Utils.getElementAt(parameters.id, respond.session.getDocument()));
   var attributeName = parameters.name;
 
   respond.value = webdriver.atoms.element.getAttribute(element, attributeName);

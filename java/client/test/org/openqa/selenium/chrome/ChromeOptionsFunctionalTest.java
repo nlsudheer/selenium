@@ -18,10 +18,11 @@
 package org.openqa.selenium.chrome;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
-import org.openqa.selenium.remote.DesiredCapabilities;
 import org.openqa.selenium.testing.JUnit4TestBase;
 import org.openqa.selenium.testing.NeedsLocalEnvironment;
 
@@ -29,7 +30,6 @@ import org.openqa.selenium.testing.NeedsLocalEnvironment;
  * Functional tests for {@link ChromeOptions}.
  */
 public class ChromeOptionsFunctionalTest extends JUnit4TestBase {
-
   private ChromeDriver driver = null;
 
   @After
@@ -37,6 +37,12 @@ public class ChromeOptionsFunctionalTest extends JUnit4TestBase {
     if (driver != null) {
       driver.quit();
     }
+  }
+
+  @Before
+  @Override
+  public void createDriver() throws Exception {
+    // do nothing, don't want to have it create a driver for these tests
   }
 
   @NeedsLocalEnvironment
@@ -47,20 +53,18 @@ public class ChromeOptionsFunctionalTest extends JUnit4TestBase {
     driver = new ChromeDriver(options);
 
     driver.get(pages.clickJacker);
-    Object userAgent = driver.executeScript(
-        "return window.navigator.userAgent");
+    Object userAgent = driver.executeScript("return window.navigator.userAgent");
+    assertEquals("foo;bar", userAgent);
+  }
 
-    DesiredCapabilities capabilities =
-        (DesiredCapabilities) driver.getCapabilities();
-    String chromeDriverVersion =
-        (String) capabilities.getCapability("chrome.chromedriverVersion");
-
-    assertEquals(
-        String.format(
-            "This test requires chromedriver 17.0.963.0 or newer. You appear " +
-                "to be using %s; please download the latest chromedriver from" +
-                " http://code.google.com/p/chromedriver/downloads/list",
-            chromeDriverVersion),
-        "foo;bar", userAgent);
+  @NeedsLocalEnvironment
+  @Test
+  public void optionsStayEqualAfterSerialization() throws Exception {
+    ChromeOptions options1 = new ChromeOptions();
+    ChromeOptions options2 = new ChromeOptions();
+    assertTrue("empty chrome options should be equal", options1.equals(options2));
+    options1.toJson();
+    assertTrue("empty chrome options after one is .toJson() should be equal",
+               options1.equals(options2));
   }
 }

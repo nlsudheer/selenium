@@ -19,18 +19,16 @@ package org.openqa.selenium.remote.server.handler.html5;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 
-import org.openqa.selenium.html5.DatabaseStorage;
 import org.openqa.selenium.remote.server.JsonParametersAware;
 import org.openqa.selenium.remote.server.Session;
-import org.openqa.selenium.remote.server.handler.ResponseAwareWebDriverHandler;
+import org.openqa.selenium.remote.server.handler.WebDriverHandler;
 import org.openqa.selenium.remote.server.handler.internal.ArgumentConverter;
 import org.openqa.selenium.remote.server.handler.internal.ResultConverter;
-import org.openqa.selenium.remote.server.rest.ResultType;
 
 import java.util.List;
 import java.util.Map;
 
-public class ExecuteSQL extends ResponseAwareWebDriverHandler implements JsonParametersAware {
+public class ExecuteSQL extends WebDriverHandler<Object> implements JsonParametersAware {
   private String dbName;
   private String query;
   private List<Object> args = Lists.newArrayList();
@@ -39,14 +37,14 @@ public class ExecuteSQL extends ResponseAwareWebDriverHandler implements JsonPar
     super(session);
   }
 
-  public ResultType call() throws Exception {
-    Object value =
-        ((DatabaseStorage) getUnwrappedDriver()).executeSQL(dbName, query, args.toArray());
-    Object result = new ResultConverter(getKnownElements()).apply(value);
-    response.setValue(result);
-    return ResultType.SUCCESS;
+  @Override
+  public Object call() throws Exception {
+    Object value = Utils.getDatabaseStorage(getUnwrappedDriver())
+        .executeSQL(dbName, query, args.toArray());
+    return new ResultConverter(getKnownElements()).apply(value);
   }
 
+  @Override
   public void setJsonParameters(Map<String, Object> allParameters) throws Exception {
     dbName = (String) allParameters.get("dbName");
     query = (String) allParameters.get("query");

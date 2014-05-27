@@ -297,6 +297,7 @@ this.options = {
           'from selenium.webdriver.common.keys import Keys\n' +
           'from selenium.webdriver.support.ui import Select\n' +
           'from selenium.common.exceptions import NoSuchElementException\n' +
+          'from selenium.common.exceptions import NoAlertPresentException\n' +
           'import unittest, time, re\n' +
           '\n' +
           'class ${className}(unittest.TestCase):\n' +
@@ -501,7 +502,7 @@ WDAPI.Element.prototype.submit = function() {
   return this.ref + ".submit()";
 };
 
-WDAPI.Element.prototype.select = function(label) {
+WDAPI.Element.prototype.select = function(selectLocator) {
   if (selectLocator.type == 'index') {
     return "Select(" + this.ref + ").select_by_index(" + selectLocator.string + ")";
   }
